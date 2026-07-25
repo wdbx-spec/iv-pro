@@ -1,681 +1,227 @@
-/**
- * PromptAI – Main Application Module
- * Orchestrates UI interactions, routing, file handling, and integrations.
- */
-
+import { initI18n, t, setLanguage, getCurrentLanguage } from './i18n.js';
+import { 
+  showToast, showLoading, hideLoading, updateLoadingMessage, 
+  animateProgress, renderImageResult, renderVideoResult, 
+  openHistoryPanel, openFavoritesPanel, openSettingsModal, 
+  openRewardedModal, closeRewardedModal, updateThemeUI, 
+  updateLanguageUI, updateQuotaUI, initNavbarScroll 
+} from './ui.js';
+import { initUpload, getCurrentFile, getCurrentFileType, clearUpload } from './upload.js';
 import { analyzeImage, analyzeVideo } from './api.js';
-import { getQuota, useQuota, rechargeQuota, resetIfNewDay } from './quota.js';
-import { initAds, showBannerAd, showRewardedBannerModal } from './ads.js';
-import { initI18n, setLanguage, t, getCurrentLanguage } from './i18n.js';
+import { buildImagePrompt, buildVideoScenePrompt, calculatePromptScore } from './prompt.js';
+import { processImage } from './image.js';
+import { extractFrames } from './video.js';
+import { 
+  getQuota, useQuota, rechargeQuota, resetIfNewDay, startRewardedAdTimer 
+} from './quota.js';
+import { 
+  load, save, addToHistory, getHistory, getSettings 
+} from './storage.js';
+import { generateId } from './utils.js';
 
-// ================================================================
-// STATE
-// ================================================================
+// --- State ---
 const state = {
-  currentFile: null,
-  fileType: null, // 'image' | 'video'
-  selectedEngine: 'midjourney',
-  selectedStyle: 'photorealistic',
-  currentPage: 'home',
-  isGenerating: false
+  isGenerating: false,
+  engine: 'midjourney',
+  style: 'photorealistic'
 };
 
-// ================================================================
-// DOM REFERENCES
-// ================================================================
-const $ = (sel) => document.querySelector(sel);
-const $$ = (sel) => document.querySelectorAll(sel);
-
+// --- DOM Elements ---
 const dom = {
-  // Upload
-  uploadZone: $('#upload-drop-area'),
-  fileInput: $('#file-input'),
-  uploadPreview: $('#upload-preview'),
-  previewImage: $('#preview-image'),
-  previewVideo: $('#preview-video'),
-  removeFileBtn: $('#remove-file'),
-  fileName: $('#file-name'),
-  uploadInner: $('#upload-drop-area'),
+  generateBtn: document.getElementById('generate-btn'),
+  engineSelect: document.getElementById('engine-select'),
+  styleSelect: document.getElementById('style-select'),
+  historyBtn: document.getElementById('history-btn'),
+  favoritesBtn: document.getElementById('favorites-btn'),
+  themeToggle: document.getElementById('theme-toggle'),
+  langBtn: document.getElementById('lang-btn'),
+  historyClearBtn: document.getElementById('history-clear'),
+  newBtn: document.getElementById('new-btn')
+};
+
+// --- Initialization ---
+async function init() {
+  // 1. Language & Theme
+  await initI18n();
+  const settings = getSettings();
+  if (settings && settings.theme) {
+    document.documentElement.setAttribute('data-theme', settings.theme);
+  }
+  updateThemeUI(document.documentElement.getAttribute('data-theme'));
+  updateLanguageUI(getCurrentLanguage());
+  
+  // 2. Quota
+  resetIfNewDay();
+  updateQuotaUI(getQuota());
+
+  // 3. UI Events
+  initNavbarScroll();
+  initUpload((file, fileType) => {
+    dom.generateBtn.disabled = false;
+  });
+
+  // 4. Bind Events
+  bindEvents();
+}
+
+// --- Event Binding ---
+function bindEvents() {
+  // Selectors
+  dom.engineSelect?.addEventListener('change', (e) => state.engine = e.target.value);
+  dom.styleSelect?.addEventListener('change', (e) => state.style = e.target.value);
 
   // Generate
-  generateBtn: $('#generate-btn'),
-  loadingState: $('#loading-state'),
-  loadingText: $('#loading-text'),
-  loadingProgress: $('#loading-progress'),
+  dom.generateBtn?.addEventListener('click', handleGenerate);
 
-  // Result
-  resultSection: $('#result-section'),
-  resultPrompt: $('#result-prompt'),
-  copyBtn: $('#copy-btn'),
-  downloadBtn: $('#download-btn'),
-  newBtn: $('#new-btn'),
-
-  // Selects
-  engineBtn: $('#engine-btn'),
-  engineDropdown: $('#engine-dropdown'),
-  engineSelect: $('#engine-select'),
-  engineSelected: $('#engine-selected'),
-  styleBtn: $('#style-btn'),
-  styleDropdown: $('#style-dropdown'),
-  styleSelect: $('#style-select'),
-  styleSelected: $('#style-selected'),
-
-  // Quota
-  quotaCount: $('#quota-count'),
-
-  // Navigation
-  mainNav: $('#main-nav'),
-  mobileMenuBtn: $('#mobile-menu-btn'),
-  mobileNav: $('#mobile-nav'),
-  mobileNavClose: $('#mobile-nav-close'),
-  pageHome: $('#page-home'),
-  pageDynamic: $('#page-dynamic'),
-  dynamicContent: $('#dynamic-content'),
-
-  // Theme
-  themeToggle: $('#theme-toggle'),
-
-  // Language
-  langBtn: $('#lang-btn'),
-  langSelector: $('#lang-selector'),
-  langDropdown: $('#lang-dropdown'),
-  currentLangLabel: $('#current-lang-label'),
-
-  // Toast
-  toast: $('#toast'),
-  toastMessage: $('#toast-message'),
-
-  // Loading ad
-  loadingAdContainer: $('#loading-ad-container')
-};
-
-// ================================================================
-// INITIALIZATION
-// ================================================================
-document.addEventListener('DOMContentLoaded', async () => {
-  // Init theme
-  initTheme();
-
-  // Init i18n
-  await initI18n();
-
-  // Init quota
-  resetIfNewDay();
-  updateQuotaDisplay();
-
-  // Init ads
-  initAds();
-  showBannerAd('bottom-ad');
-
-  // Init Lucide icons
-  if (window.lucide) {
-    window.lucide.createIcons();
-  }
-
-  // Bind events
-  bindUploadEvents();
-  bindSelectEvents();
-  bindGenerateEvents();
-  bindResultEvents();
-  bindNavigationEvents();
-  bindThemeEvents();
-  bindLanguageEvents();
-
-  // Handle initial hash
-  handleHashChange();
-
-  // Register service worker
-  registerSW();
-});
-
-// ================================================================
-// SERVICE WORKER
-// ================================================================
-function registerSW() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
-      // Silent fail - SW not critical
-    });
-  }
-}
-
-// ================================================================
-// THEME
-// ================================================================
-function initTheme() {
-  const saved = localStorage.getItem('promptai_theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', saved);
-}
-
-function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme');
-  const next = current === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('promptai_theme', next);
-}
-
-function bindThemeEvents() {
+  // Panels
+  dom.historyBtn?.addEventListener('click', () => {
+    // Re-render history before opening (implemented inside ui.js or we can pass data)
+    openHistoryPanel();
+  });
+  dom.favoritesBtn?.addEventListener('click', openFavoritesPanel);
+  dom.langBtn?.addEventListener('click', openSettingsModal);
+  
+  // Theme Toggle
   dom.themeToggle?.addEventListener('click', () => {
-    toggleTheme();
-  });
-}
-
-// ================================================================
-// LANGUAGE
-// ================================================================
-function bindLanguageEvents() {
-  // Toggle dropdown
-  dom.langBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    dom.langSelector.classList.toggle('open');
+    const current = document.documentElement.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    save('SETTINGS', { ...getSettings(), theme: next });
+    updateThemeUI(next);
   });
 
-  // Select language
-  $$('.lang-option').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const lang = btn.dataset.lang;
-      await setLanguage(lang);
-      updateLangUI(lang);
-      dom.langSelector.classList.remove('open');
-      // Re-init Lucide icons after i18n update
-      if (window.lucide) window.lucide.createIcons();
-    });
-  });
-
-  // Close on outside click
-  document.addEventListener('click', () => {
-    dom.langSelector?.classList.remove('open');
-  });
-
-  // Set initial UI
-  updateLangUI(getCurrentLanguage());
-}
-
-function updateLangUI(lang) {
-  const labels = { en: 'EN', fr: 'FR', de: 'DE', es: 'ES', zh: '中', ar: 'عر' };
-  if (dom.currentLangLabel) dom.currentLangLabel.textContent = labels[lang] || 'EN';
-
-  // Update active state
-  $$('.lang-option').forEach((opt) => {
-    opt.classList.toggle('active', opt.dataset.lang === lang);
-  });
-}
-
-// ================================================================
-// FILE UPLOAD
-// ================================================================
-function bindUploadEvents() {
-  // Click to upload
-  dom.uploadZone?.addEventListener('click', () => {
-    dom.fileInput?.click();
-  });
-
-  // File input change
-  dom.fileInput?.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) handleFile(file);
-  });
-
-  // Drag & drop
-  dom.uploadZone?.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dom.uploadZone.classList.add('dragover');
-  });
-
-  dom.uploadZone?.addEventListener('dragleave', () => {
-    dom.uploadZone.classList.remove('dragover');
-  });
-
-  dom.uploadZone?.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dom.uploadZone.classList.remove('dragover');
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
-  });
-
-  // Remove file
-  dom.removeFileBtn?.addEventListener('click', () => {
-    clearFile();
-  });
-}
-
-function handleFile(file) {
-  // Validate type
-  const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-  const videoTypes = ['video/mp4', 'video/webm'];
-
-  if (!imageTypes.includes(file.type) && !videoTypes.includes(file.type)) {
-    showToast(t('error.format') || 'Unsupported file format.');
-    return;
-  }
-
-  // Validate size
-  const maxImageSize = 10 * 1024 * 1024; // 10MB
-  const maxVideoSize = 50 * 1024 * 1024; // 50MB
-  const isImage = imageTypes.includes(file.type);
-  const maxSize = isImage ? maxImageSize : maxVideoSize;
-
-  if (file.size > maxSize) {
-    showToast(t('error.size') || 'File too large.');
-    return;
-  }
-
-  state.currentFile = file;
-  state.fileType = isImage ? 'image' : 'video';
-
-  // Show preview
-  showPreview(file);
-
-  // Enable generate button
-  dom.generateBtn.disabled = false;
-}
-
-function showPreview(file) {
-  const url = URL.createObjectURL(file);
-
-  dom.uploadZone.style.display = 'none';
-  dom.uploadPreview.style.display = 'flex';
-
-  if (state.fileType === 'image') {
-    dom.previewImage.src = url;
-    dom.previewImage.style.display = 'block';
-    dom.previewVideo.style.display = 'none';
-  } else {
-    dom.previewVideo.src = url;
-    dom.previewVideo.style.display = 'block';
-    dom.previewImage.style.display = 'none';
-  }
-
-  dom.fileName.textContent = file.name;
-}
-
-function clearFile() {
-  state.currentFile = null;
-  state.fileType = null;
-
-  dom.uploadZone.style.display = 'flex';
-  dom.uploadPreview.style.display = 'none';
-  dom.previewImage.style.display = 'none';
-  dom.previewImage.src = '';
-  dom.previewVideo.style.display = 'none';
-  dom.previewVideo.src = '';
-  dom.fileName.textContent = '';
-  dom.fileInput.value = '';
-  dom.generateBtn.disabled = true;
-
-  // Hide result
-  dom.resultSection.style.display = 'none';
-}
-
-// ================================================================
-// CUSTOM SELECTS
-// ================================================================
-function bindSelectEvents() {
-  // Engine select
-  setupCustomSelect(
-    dom.engineBtn, dom.engineSelect, dom.engineDropdown, dom.engineSelected,
-    (value, label) => { state.selectedEngine = value; }
-  );
-
-  // Style select
-  setupCustomSelect(
-    dom.styleBtn, dom.styleSelect, dom.styleDropdown, dom.styleSelected,
-    (value, label) => { state.selectedStyle = value; }
-  );
-
-  // Close all selects on outside click
-  document.addEventListener('click', () => {
-    $$('.custom-select').forEach((s) => s.classList.remove('open'));
-  });
-}
-
-function setupCustomSelect(btn, selectEl, dropdown, selectedEl, onChange) {
-  btn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    // Close other selects
-    $$('.custom-select').forEach((s) => {
-      if (s !== selectEl) s.classList.remove('open');
-    });
-    selectEl.classList.toggle('open');
-  });
-
-  dropdown?.querySelectorAll('.custom-select__option').forEach((opt) => {
-    opt.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const value = opt.dataset.value;
-      const label = opt.textContent.trim();
-
-      // Update active
-      dropdown.querySelectorAll('.custom-select__option').forEach((o) => o.classList.remove('active'));
-      opt.classList.add('active');
-
-      // Update display
-      selectedEl.textContent = label;
-      selectEl.classList.remove('open');
-
-      onChange(value, label);
-    });
-  });
-}
-
-// ================================================================
-// GENERATE PROMPT
-// ================================================================
-function bindGenerateEvents() {
-  dom.generateBtn?.addEventListener('click', () => {
-    generatePrompt();
-  });
-}
-
-async function generatePrompt() {
-  if (!state.currentFile || state.isGenerating) return;
-
-  // Check quota
-  resetIfNewDay();
-  if (!useQuota()) {
-    // Show rewarded ad modal
-    try {
-      await showRewardedBannerModal();
-      rechargeQuota();
-      updateQuotaDisplay();
-      showToast(t('quota.success') || '5 new attempts added!');
-      // Retry generation
-      generatePrompt();
-    } catch {
-      // User closed without completing
-    }
-    return;
-  }
-
-  updateQuotaDisplay();
-  state.isGenerating = true;
-
-  // Show loading
-  dom.generateBtn.style.display = 'none';
-  dom.resultSection.style.display = 'none';
-  dom.loadingState.style.display = 'flex';
-
-  // Animate progress bar
-  animateProgress();
-
-  // Push loading ad
-  try {
-    (window.adsbygoogle = window.adsbygoogle || []).push({});
-  } catch {
-    // AdSense not loaded
-  }
-
-  try {
-    let result;
-    if (state.fileType === 'image') {
-      dom.loadingText.textContent = t('loading.image') || 'Analyzing your image...';
-      result = await analyzeImage(state.currentFile, state.selectedEngine, state.selectedStyle);
-    } else {
-      dom.loadingText.textContent = t('loading.video') || 'Analyzing your video...';
-      result = await analyzeVideo(state.currentFile, state.selectedEngine, state.selectedStyle);
-    }
-
-    // Show result
-    dom.loadingState.style.display = 'none';
-    dom.resultSection.style.display = 'block';
-    
-    // Clear previous results
-    dom.resultPrompt.innerHTML = '';
-    
-    if (result.type === 'video' && result.prompts.length > 1) {
-      // Multi-scene rendering
-      result.prompts.forEach((promptText, index) => {
-        const sceneCard = document.createElement('div');
-        sceneCard.className = 'scene-card';
-        sceneCard.innerHTML = `
-          <div class="scene-card__header">
-            <span class="scene-card__title">Scene ${index + 1}</span>
-            <button class="btn-action-small copy-scene-btn" data-text="${encodeURIComponent(promptText)}">
-              <i data-lucide="copy"></i> Copy
-            </button>
-          </div>
-          <div class="scene-card__content">${promptText}</div>
-        `;
-        dom.resultPrompt.appendChild(sceneCard);
-      });
-      // Re-init lucide icons for new elements
-      if (window.lucide) window.lucide.createIcons();
-      // Bind copy buttons for scenes
-      bindSceneCopyButtons();
-      
-      // Store full text for global copy/download
-      dom.resultPrompt.dataset.fullText = result.prompts.map((p, i) => `Scene ${i+1}:\n${p}`).join('\n\n');
-    } else {
-      // Single prompt rendering
-      dom.resultPrompt.textContent = result.prompts[0];
-      dom.resultPrompt.dataset.fullText = result.prompts[0];
-    }
-  } catch (error) {
-    dom.loadingState.style.display = 'none';
-    dom.generateBtn.style.display = 'flex';
-    showToast(t('error.generic') || 'An error occurred. Please try again.');
-    console.error('Generation error:', error);
-  }
-
-  state.isGenerating = false;
-}
-
-function bindSceneCopyButtons() {
-  document.querySelectorAll('.copy-scene-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const text = decodeURIComponent(btn.dataset.text);
-      navigator.clipboard.writeText(text).then(() => {
-        showToast(t('result.copied') || 'Copied!');
-      }).catch(() => {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        showToast(t('result.copied') || 'Copied!');
-      });
-    });
-  });
-}
-
-function animateProgress() {
-  const bar = dom.loadingProgress;
-  if (!bar) return;
-  bar.style.width = '0%';
-
-  let progress = 0;
-  const interval = setInterval(() => {
-    if (progress >= 90) {
-      clearInterval(interval);
-      return;
-    }
-    progress += Math.random() * 15;
-    if (progress > 90) progress = 90;
-    bar.style.width = progress + '%';
-  }, 500);
-
-  // Store interval for cleanup
-  bar._interval = interval;
-}
-
-// ================================================================
-// RESULT ACTIONS
-// ================================================================
-function bindResultEvents() {
-  // Copy All
-  dom.copyBtn?.addEventListener('click', () => {
-    const text = dom.resultPrompt.dataset.fullText || dom.resultPrompt.textContent;
-    navigator.clipboard.writeText(text).then(() => {
-      showToast(t('result.copied') || 'Copied!');
-    }).catch(() => {
-      // Fallback copy
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      showToast(t('result.copied') || 'Copied!');
-    });
-  });
-
-  // Download All
-  dom.downloadBtn?.addEventListener('click', () => {
-    const text = dom.resultPrompt.dataset.fullText || dom.resultPrompt.textContent;
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `promptai-${state.selectedEngine}-${Date.now()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-
-  // Generate another
+  // New Button
   dom.newBtn?.addEventListener('click', () => {
-    clearFile();
-    dom.generateBtn.style.display = 'flex';
-    dom.resultSection.style.display = 'none';
-    dom.loadingState.style.display = 'none';
+    clearUpload();
+    document.getElementById('result-section').hidden = true;
+    dom.generateBtn.hidden = false;
+    dom.generateBtn.disabled = true;
   });
 }
 
-// ================================================================
-// QUOTA DISPLAY
-// ================================================================
-function updateQuotaDisplay() {
-  const quota = getQuota();
-  if (dom.quotaCount) {
-    dom.quotaCount.textContent = `${quota.remaining}/${quota.total}`;
-  }
-}
+// --- Core Generation Flow ---
+async function handleGenerate() {
+  const file = getCurrentFile();
+  const fileType = getCurrentFileType();
 
-// ================================================================
-// NAVIGATION / ROUTING
-// ================================================================
-function bindNavigationEvents() {
-  // Hash-based routing
-  window.addEventListener('hashchange', handleHashChange);
-
-  // Nav links
-  $$('[data-page]').forEach((link) => {
-    link.addEventListener('click', (e) => {
-      const page = link.dataset.page;
-      if (page) {
-        e.preventDefault();
-        window.location.hash = page;
-      }
-    });
-  });
-
-  // Mobile menu
-  dom.mobileMenuBtn?.addEventListener('click', () => {
-    dom.mobileNav?.classList.add('open');
-  });
-
-  dom.mobileNavClose?.addEventListener('click', () => {
-    dom.mobileNav?.classList.remove('open');
-  });
-
-  dom.mobileNav?.addEventListener('click', (e) => {
-    if (e.target === dom.mobileNav) {
-      dom.mobileNav.classList.remove('open');
-    }
-  });
-
-  // Close mobile nav on link click
-  $$('.mobile-nav__link').forEach((link) => {
-    link.addEventListener('click', () => {
-      dom.mobileNav?.classList.remove('open');
-    });
-  });
-}
-
-async function handleHashChange() {
-  const hash = window.location.hash.replace('#', '') || 'home';
-  state.currentPage = hash;
-
-  // Update active nav links
-  $$('.nav-link, .mobile-nav__link').forEach((link) => {
-    link.classList.toggle('active', link.dataset.page === hash);
-  });
-
-  if (hash === 'home') {
-    dom.pageHome.classList.add('active');
-    dom.pageHome.style.display = 'block';
-    dom.pageDynamic.classList.remove('active');
-    dom.pageDynamic.style.display = 'none';
-  } else {
-    dom.pageHome.classList.remove('active');
-    dom.pageHome.style.display = 'none';
-    dom.pageDynamic.classList.add('active');
-    dom.pageDynamic.style.display = 'block';
-
-    // Load page
-    await loadPage(hash);
+  if (!file) {
+    showToast(t('error.nofile'), 'error');
+    return;
   }
 
-  // Scroll to top
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
+  if (state.isGenerating) return;
 
-async function loadPage(pageName) {
+  // Check Quota
+  if (!useQuota()) {
+    showRewardedAdFlow();
+    return;
+  }
+  updateQuotaUI(getQuota());
+
+  state.isGenerating = true;
+  showLoading(t('loading.start'));
+
   try {
-    const response = await fetch(`pages/${pageName}.html`);
-    if (!response.ok) throw new Error('Page not found');
-    const html = await response.text();
-    dom.dynamicContent.innerHTML = html;
+    let resultPrompts = [];
+    let score = 0;
+    const historyId = generateId();
 
-    // Re-apply i18n
-    await setLanguage(getCurrentLanguage());
+    if (fileType === 'image') {
+      updateLoadingMessage(t('loading.processing'));
+      animateProgress(30, 1000);
+      
+      const { base64 } = await processImage(file);
+      
+      updateLoadingMessage(t('loading.ai'));
+      animateProgress(70, 2000);
+      
+      const rawDescription = await analyzeImage(base64);
+      
+      updateLoadingMessage(t('loading.crafting'));
+      animateProgress(95, 500);
+      
+      const finalPrompt = buildImagePrompt(rawDescription, state.engine, state.style);
+      score = calculatePromptScore(finalPrompt);
+      
+      renderImageResult(finalPrompt, state.engine, score);
+      
+      // Save to History
+      addToHistory({
+        id: historyId,
+        type: 'image',
+        engine: state.engine,
+        style: state.style,
+        prompts: [finalPrompt],
+        filename: file.name,
+        createdAt: new Date().toISOString()
+      });
 
-    // Re-init Lucide icons in dynamic content
-    if (window.lucide) window.lucide.createIcons();
+    } else if (fileType === 'video') {
+      updateLoadingMessage(t('loading.extracting'));
+      animateProgress(20, 2000);
+      
+      const frames = await extractFrames(file, 5);
+      
+      updateLoadingMessage(t('loading.ai'));
+      animateProgress(60, 4000);
+      
+      const scenes = await analyzeVideo(frames, (info) => {
+        if (info.step === 'analyzing') animateProgress(80, 2000);
+      });
+      
+      updateLoadingMessage(t('loading.crafting'));
+      animateProgress(95, 500);
+      
+      const finalScenes = scenes.map(scene => ({
+        ...scene,
+        prompt: buildVideoScenePrompt(scene, state.engine, state.style)
+      }));
+      
+      score = calculatePromptScore(finalScenes[0]?.prompt || '');
+      
+      renderVideoResult(finalScenes, state.engine);
+      
+      // Save to History
+      addToHistory({
+        id: historyId,
+        type: 'video',
+        engine: state.engine,
+        style: state.style,
+        prompts: finalScenes.map(s => s.prompt),
+        filename: file.name,
+        createdAt: new Date().toISOString()
+      });
+    }
 
-    // Init FAQ accordion if on FAQ page
-    if (pageName === 'faq') initFaqAccordion();
+    animateProgress(100, 200);
+    setTimeout(() => {
+      hideLoading();
+      showToast(t('success.generated'), 'success');
+    }, 400);
 
-  } catch {
-    dom.dynamicContent.innerHTML = `
-      <div class="page-content" style="text-align:center; padding: 60px 20px;">
-        <h1 class="page-title">404</h1>
-        <p class="page-subtitle">Page not found</p>
-        <a href="#home" class="btn-primary" data-page="home">Go Home</a>
-      </div>
-    `;
+  } catch (error) {
+    console.error('Generation Error:', error);
+    hideLoading();
+    dom.generateBtn.hidden = false;
+    showToast(error.message || t('error.generic'), 'error');
+    // Refund quota on error
+    rechargeQuota(1);
+    updateQuotaUI(getQuota());
+  } finally {
+    state.isGenerating = false;
   }
 }
 
-function initFaqAccordion() {
-  $$('.faq-question').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const item = btn.closest('.faq-item');
-      const wasOpen = item.classList.contains('open');
-
-      // Close all
-      $$('.faq-item').forEach((fi) => fi.classList.remove('open'));
-
-      // Toggle clicked
-      if (!wasOpen) item.classList.add('open');
-    });
+// --- Monetization ---
+function showRewardedAdFlow() {
+  openRewardedModal(() => {
+    // User watched ad
+    rechargeQuota(5);
+    updateQuotaUI(getQuota());
+    closeRewardedModal();
+    showToast(t('quota.rewarded'), 'success');
   });
 }
 
-// ================================================================
-// TOAST
-// ================================================================
-function showToast(message) {
-  if (!dom.toast || !dom.toastMessage) return;
-  dom.toastMessage.textContent = message;
-  dom.toast.classList.add('show');
-
-  setTimeout(() => {
-    dom.toast.classList.remove('show');
-  }, 3000);
-}
-
-// ================================================================
-// Make showToast globally available for other modules
-// ================================================================
-window.__promptai_showToast = showToast;
+// Bootstrap
+document.addEventListener('DOMContentLoaded', init);

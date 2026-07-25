@@ -1,52 +1,74 @@
-const QUOTA_KEY = 'promptai_quota';
-const MAX_ATTEMPTS = 5;
+// quota.js
+import { load, save, Keys } from './storage.js';
 
-function getTodayStr() {
-    const today = new Date();
-    // YYYY-MM-DD format
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+export const QUOTA_KEY = Keys.QUOTA;
+export const DEFAULT_QUOTA = 5;
+
+export function getQuota() {
+    const defaultQuotaObj = {
+        remaining: DEFAULT_QUOTA,
+        total: DEFAULT_QUOTA,
+        lastReset: new Date().toISOString()
+    };
+    return load(QUOTA_KEY, defaultQuotaObj);
+}
+
+function saveQuota(quotaObj) {
+    save(QUOTA_KEY, quotaObj);
 }
 
 export function resetIfNewDay() {
-    let quota = localStorage.getItem(QUOTA_KEY);
-    const todayStr = getTodayStr();
+    const quota = getQuota();
+    const lastResetDate = new Date(quota.lastReset).toDateString();
+    const today = new Date().toDateString();
     
-    if (quota) {
-        try {
-            quota = JSON.parse(quota);
-            if (quota.date !== todayStr) {
-                quota = { count: MAX_ATTEMPTS, date: todayStr };
-                localStorage.setItem(QUOTA_KEY, JSON.stringify(quota));
-            }
-        } catch (e) {
-            quota = { count: MAX_ATTEMPTS, date: todayStr };
-            localStorage.setItem(QUOTA_KEY, JSON.stringify(quota));
-        }
-    } else {
-        quota = { count: MAX_ATTEMPTS, date: todayStr };
-        localStorage.setItem(QUOTA_KEY, JSON.stringify(quota));
+    if (lastResetDate !== today) {
+        quota.remaining = quota.total;
+        quota.lastReset = new Date().toISOString();
+        saveQuota(quota);
     }
-    return quota;
-}
-
-export function getQuota() {
-    const quota = resetIfNewDay();
-    return { remaining: quota.count, total: MAX_ATTEMPTS };
 }
 
 export function useQuota() {
-    const quota = resetIfNewDay();
-    if (quota.count > 0) {
-        quota.count -= 1;
-        localStorage.setItem(QUOTA_KEY, JSON.stringify(quota));
-        return true;
+    resetIfNewDay();
+    const quota = getQuota();
+    if (quota.remaining <= 0) {
+        return false;
     }
-    return false;
+    quota.remaining -= 1;
+    saveQuota(quota);
+    return true;
 }
 
-export function rechargeQuota() {
-    const quota = resetIfNewDay();
-    quota.count += 5;
-    localStorage.setItem(QUOTA_KEY, JSON.stringify(quota));
-    return getQuota();
+export function rechargeQuota(amount = 5) {
+    const quota = getQuota();
+    quota.remaining += amount;
+    saveQuota(quota);
+}
+
+export function hasQuota() {
+    resetIfNewDay();
+    return getQuota().remaining > 0;
+}
+
+export function startRewardedAdTimer(onComplete, onTick, durationSeconds = 15) {
+    let secondsRemaining = durationSeconds;
+    let timerId;
+
+    const tick = () => {
+        if (secondsRemaining <= 0) {
+            clearInterval(timerId);
+            onComplete();
+        } else {
+            onTick(secondsRemaining);
+            secondsRemaining -= 1;
+        }
+    };
+
+    tick();
+    timerId = setInterval(tick, 1000);
+
+    return function cancel() {
+        clearInterval(timerId);
+    };
 }
