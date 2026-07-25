@@ -1095,6 +1095,73 @@ input, textarea, select {
   border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
+/* Scene Cards (Multi-scene videos) */
+.scene-card {
+  background: rgba(15, 20, 42, 0.4);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: all var(--transition-fast);
+}
+
+.scene-card:hover {
+  background: rgba(15, 20, 42, 0.7);
+  border-color: var(--border-glass-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.scene-card:last-child {
+  margin-bottom: 0;
+}
+
+.scene-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border-glass);
+}
+
+.scene-card__title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.scene-card__content {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.btn-action-small {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--border-glass);
+  transition: all var(--transition-fast);
+}
+
+.btn-action-small:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.btn-action-small i, .btn-action-small svg {
+  width: 12px;
+  height: 12px;
+}
+
 .result-section__actions {
   display: flex;
   gap: 10px;

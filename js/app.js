@@ -418,7 +418,38 @@ async function generatePrompt() {
     // Show result
     dom.loadingState.style.display = 'none';
     dom.resultSection.style.display = 'block';
-    dom.resultPrompt.textContent = result;
+    
+    // Clear previous results
+    dom.resultPrompt.innerHTML = '';
+    
+    if (result.type === 'video' && result.prompts.length > 1) {
+      // Multi-scene rendering
+      result.prompts.forEach((promptText, index) => {
+        const sceneCard = document.createElement('div');
+        sceneCard.className = 'scene-card';
+        sceneCard.innerHTML = `
+          <div class="scene-card__header">
+            <span class="scene-card__title">Scene ${index + 1}</span>
+            <button class="btn-action-small copy-scene-btn" data-text="${encodeURIComponent(promptText)}">
+              <i data-lucide="copy"></i> Copy
+            </button>
+          </div>
+          <div class="scene-card__content">${promptText}</div>
+        `;
+        dom.resultPrompt.appendChild(sceneCard);
+      });
+      // Re-init lucide icons for new elements
+      if (window.lucide) window.lucide.createIcons();
+      // Bind copy buttons for scenes
+      bindSceneCopyButtons();
+      
+      // Store full text for global copy/download
+      dom.resultPrompt.dataset.fullText = result.prompts.map((p, i) => `Scene ${i+1}:\n${p}`).join('\n\n');
+    } else {
+      // Single prompt rendering
+      dom.resultPrompt.textContent = result.prompts[0];
+      dom.resultPrompt.dataset.fullText = result.prompts[0];
+    }
   } catch (error) {
     dom.loadingState.style.display = 'none';
     dom.generateBtn.style.display = 'flex';
@@ -427,6 +458,25 @@ async function generatePrompt() {
   }
 
   state.isGenerating = false;
+}
+
+function bindSceneCopyButtons() {
+  document.querySelectorAll('.copy-scene-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const text = decodeURIComponent(btn.dataset.text);
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(t('result.copied') || 'Copied!');
+      }).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast(t('result.copied') || 'Copied!');
+      });
+    });
+  });
 }
 
 function animateProgress() {
@@ -453,9 +503,9 @@ function animateProgress() {
 // RESULT ACTIONS
 // ================================================================
 function bindResultEvents() {
-  // Copy
+  // Copy All
   dom.copyBtn?.addEventListener('click', () => {
-    const text = dom.resultPrompt.textContent;
+    const text = dom.resultPrompt.dataset.fullText || dom.resultPrompt.textContent;
     navigator.clipboard.writeText(text).then(() => {
       showToast(t('result.copied') || 'Copied!');
     }).catch(() => {
@@ -470,9 +520,9 @@ function bindResultEvents() {
     });
   });
 
-  // Download
+  // Download All
   dom.downloadBtn?.addEventListener('click', () => {
-    const text = dom.resultPrompt.textContent;
+    const text = dom.resultPrompt.dataset.fullText || dom.resultPrompt.textContent;
     const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
