@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!-- Primary Meta Tags -->
+  <title data-i18n="meta.title">PromptAI – AI Prompt Generator from Images & Videos</title>
+  <meta name="title" content="PromptAI – AI Prompt Generator from Images & Videos">
+  <meta name="description" content="Transform your images and videos into professional AI prompts for Midjourney, DALL-E, Runway, Sora, and Luma. Free online tool with instant results.">
+  <meta name="keywords" content="AI prompt generator, image to prompt, video to prompt, Midjourney prompt, DALL-E prompt, Runway prompt, Sora prompt, Luma prompt, AI art">
+  <meta name="author" content="WD Bloog">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#6c5ce7">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://prompt.wdbloog.com/">
+  <meta property="og:title" content="PromptAI – AI Prompt Generator from Images & Videos">
+  <meta property="og:description" content="Transform your images and videos into professional AI prompts for Midjourney, DALL-E, Runway, Sora, and Luma.">
+  <meta property="og:image" content="https://prompt.wdbloog.com/assets/og-image.png">
+  <meta property="og:site_name" content="PromptAI">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://prompt.wdbloog.com/">
+  <meta property="twitter:title" content="PromptAI – AI Prompt Generator from Images & Videos">
+  <meta property="twitter:description" content="Transform your images and videos into professional AI prompts for Midjourney, DALL-E, Runway, Sora, and Luma.">
+  <meta property="twitter:image" content="https://prompt.wdbloog.com/assets/og-image.png">
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://prompt.wdbloog.com/">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PromptAI">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- JSON-LD Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "PromptAI",
+    "url": "https://prompt.wdbloog.com",
+    "description": "Transform your images and videos into professional AI prompts for Midjourney, DALL-E, Runway, Sora, and Luma.",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "All",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "WD Bloog",
+      "url": "https://wdbloog.com"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "1250"
+    }
+  }
+  </script>
+
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3618365568004987" crossorigin="anonymous"></script>
+</head>
+<body>
+
+  <!-- ============================================ -->
+  <!-- ANIMATED BACKGROUND                          -->
+  <!-- ============================================ -->
+  <div class="bg-animated">
+    <div class="bg-orb bg-orb--1"></div>
+    <div class="bg-orb bg-orb--2"></div>
+    <div class="bg-orb bg-orb--3"></div>
+    <div class="bg-grid"></div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- HEADER / NAVIGATION                          -->
+  <!-- ============================================ -->
+  <header class="header" id="header">
+    <div class="header__container">
+      <!-- Logo -->
+      <a href="#home" class="header__logo" id="header-logo">
+        <div class="header__logo-icon">
+          <i data-lucide="sparkles"></i>
+        </div>
+        <span class="header__logo-text">Prompt<span class="text-gradient">AI</span></span>
+      </a>
+
+      <!-- Navigation -->
+      <nav class="header__nav" id="main-nav">
+        <a href="#home" class="nav-link active" data-page="home" data-i18n="nav.home">Home</a>
+        <a href="#howto" class="nav-link" data-page="howto" data-i18n="nav.howto">How to Use</a>
+        <a href="#faq" class="nav-link" data-page="faq" data-i18n="nav.faq">FAQ</a>
+        <a href="#about" class="nav-link" data-page="about" data-i18n="nav.about">About</a>
+        <a href="#contact" class="nav-link" data-page="contact" data-i18n="nav.contact">Contact</a>
+      </nav>
+
+      <!-- Controls -->
+      <div class="header__controls">
+        <!-- Language Selector -->
+        <div class="lang-selector" id="lang-selector">
+          <button class="lang-selector__btn" id="lang-btn" aria-label="Select language">
+            <i data-lucide="globe"></i>
+            <span id="current-lang-label">EN</span>
+            <i data-lucide="chevron-down" class="lang-selector__arrow"></i>
+          </button>
+          <div class="lang-selector__dropdown" id="lang-dropdown">
+            <button class="lang-option" data-lang="en">🇬🇧 English</button>
+            <button class="lang-option" data-lang="fr">🇫🇷 Français</button>
+            <button class="lang-option" data-lang="de">🇩🇪 Deutsch</button>
+            <button class="lang-option" data-lang="es">🇪🇸 Español</button>
+            <button class="lang-option" data-lang="zh">🇨🇳 中文</button>
+            <button class="lang-option" data-lang="ar">🇸🇦 العربية</button>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+          <i data-lucide="moon" class="theme-toggle__icon theme-toggle__icon--dark"></i>
+          <i data-lucide="sun" class="theme-toggle__icon theme-toggle__icon--light"></i>
+        </button>
+
+        <!-- Mobile Menu -->
+        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Menu">
+          <i data-lucide="menu"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Nav Overlay -->
+    <div class="mobile-nav" id="mobile-nav">
+      <div class="mobile-nav__content">
+        <button class="mobile-nav__close" id="mobile-nav-close">
+          <i data-lucide="x"></i>
+        </button>
+        <a href="#home" class="mobile-nav__link active" data-page="home" data-i18n="nav.home">Home</a>
+        <a href="#howto" class="mobile-nav__link" data-page="howto" data-i18n="nav.howto">How to Use</a>
+        <a href="#faq" class="mobile-nav__link" data-page="faq" data-i18n="nav.faq">FAQ</a>
+        <a href="#about" class="mobile-nav__link" data-page="about" data-i18n="nav.about">About</a>
+        <a href="#contact" class="mobile-nav__link" data-page="contact" data-i18n="nav.contact">Contact</a>
+        <a href="#privacy" class="mobile-nav__link" data-page="privacy" data-i18n="nav.privacy">Privacy Policy</a>
+        <a href="#terms" class="mobile-nav__link" data-page="terms" data-i18n="nav.terms">Terms of Service</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================ -->
+  <!-- MAIN CONTENT                                 -->
+  <!-- ============================================ -->
+  <main class="main" id="main-content">
+
+    <!-- ======== HOME / APP PAGE ======== -->
+    <section class="page page--home active" id="page-home">
+
+      <!-- Hero Section -->
+      <div class="hero">
+        <div class="hero__badge">
+          <i data-lucide="zap"></i>
+          <span data-i18n="hero.badge">AI-Powered Prompt Generator</span>
+        </div>
+        <h1 class="hero__title">
+          <span data-i18n="hero.title.line1">Transform Your Visuals Into</span>
+          <br>
+          <span class="text-gradient" data-i18n="hero.title.line2">Professional AI Prompts</span>
+        </h1>
+        <p class="hero__subtitle" data-i18n="app.tagline">Upload an image or video and get a professional, ready-to-use prompt for your favorite AI engine in seconds.</p>
+      </div>
+
+      <!-- Quota Display -->
+      <div class="quota-bar" id="quota-bar">
+        <div class="quota-bar__inner">
+          <i data-lucide="flame"></i>
+          <span data-i18n="quota.display">Free attempts remaining today:</span>
+          <span class="quota-bar__count" id="quota-count">5/5</span>
+        </div>
+      </div>
+
+      <!-- App Card -->
+      <div class="app-card">
+
+        <!-- Upload Area -->
+        <div class="upload-zone" id="upload-zone">
+          <div class="upload-zone__inner" id="upload-drop-area">
+            <div class="upload-zone__icon">
+              <i data-lucide="upload-cloud"></i>
+            </div>
+            <h2 class="upload-zone__title" data-i18n="upload.title">Upload Image or Video</h2>
+            <p class="upload-zone__text" data-i18n="upload.dragdrop">Drag & drop your file here</p>
+            <span class="upload-zone__or" data-i18n="upload.or">or click to browse</span>
+            <p class="upload-zone__formats" data-i18n="upload.formats">Supported: JPG, PNG, GIF, WEBP, MP4, WEBM</p>
+            <input type="file" id="file-input" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm" hidden>
+          </div>
+          <!-- File Preview -->
+          <div class="upload-zone__preview" id="upload-preview" style="display:none;">
+            <img id="preview-image" alt="Preview" style="display:none;">
+            <video id="preview-video" controls style="display:none;"></video>
+            <button class="upload-zone__remove" id="remove-file" aria-label="Remove file">
+              <i data-lucide="x-circle"></i>
+            </button>
+            <div class="upload-zone__filename" id="file-name"></div>
+          </div>
+        </div>
+
+        <!-- Options Row -->
+        <div class="options-row">
+          <!-- AI Engine Selector -->
+          <div class="select-group">
+            <label class="select-group__label" data-i18n="engine.label">
+              <i data-lucide="cpu"></i> Select AI Engine
+            </label>
+            <div class="custom-select" id="engine-select">
+              <button class="custom-select__btn" id="engine-btn">
+                <span id="engine-selected">Midjourney v6</span>
+                <i data-lucide="chevron-down"></i>
+              </button>
+              <div class="custom-select__dropdown" id="engine-dropdown">
+                <button class="custom-select__option active" data-value="midjourney">Midjourney v6</button>
+                <button class="custom-select__option" data-value="dalle">DALL-E 3</button>
+                <button class="custom-select__option" data-value="runway">Runway Gen-3</button>
+                <button class="custom-select__option" data-value="sora">Sora</button>
+                <button class="custom-select__option" data-value="luma">Luma</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Style Selector -->
+          <div class="select-group">
+            <label class="select-group__label" data-i18n="style.label">
+              <i data-lucide="palette"></i> Prompt Style
+            </label>
+            <div class="custom-select" id="style-select">
+              <button class="custom-select__btn" id="style-btn">
+                <span id="style-selected">Photorealistic</span>
+                <i data-lucide="chevron-down"></i>
+              </button>
+              <div class="custom-select__dropdown" id="style-dropdown">
+                <button class="custom-select__option active" data-value="photorealistic" data-i18n="style.photorealistic">Photorealistic</button>
+                <button class="custom-select__option" data-value="cinematic" data-i18n="style.cinematic">Cinematic</button>
+                <button class="custom-select__option" data-value="anime" data-i18n="style.anime">Anime / Manga</button>
+                <button class="custom-select__option" data-value="digital" data-i18n="style.digital">Digital Art</button>
+                <button class="custom-select__option" data-value="oil" data-i18n="style.oil">Oil Painting</button>
+                <button class="custom-select__option" data-value="watercolor" data-i18n="style.watercolor">Watercolor</button>
+                <button class="custom-select__option" data-value="3d" data-i18n="style.3d">3D Render</button>
+                <button class="custom-select__option" data-value="minimalist" data-i18n="style.minimalist">Minimalist</button>
+                <button class="custom-select__option" data-value="abstract" data-i18n="style.abstract">Abstract</button>
+                <button class="custom-select__option" data-value="fantasy" data-i18n="style.fantasy">Fantasy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Generate Button -->
+        <button class="btn-generate" id="generate-btn" disabled>
+          <i data-lucide="wand-2"></i>
+          <span data-i18n="generate.btn">Generate Prompt</span>
+        </button>
+
+        <!-- Loading State -->
+        <div class="loading-state" id="loading-state" style="display:none;">
+          <div class="loading-state__spinner">
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring"></div>
+          </div>
+          <p class="loading-state__text" id="loading-text" data-i18n="loading.analyzing">Analyzing your file...</p>
+          <div class="loading-state__progress">
+            <div class="loading-state__progress-bar" id="loading-progress"></div>
+          </div>
+          <!-- Ad during loading -->
+          <div class="loading-ad" id="loading-ad-container">
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="ca-pub-3618365568004987"
+                 data-ad-slot="4314248288"
+                 data-ad-format="auto"
+                 data-full-width-responsive="true"></ins>
+          </div>
+        </div>
+
+        <!-- Result Section -->
+        <div class="result-section" id="result-section" style="display:none;">
+          <div class="result-section__header">
+            <h2 data-i18n="result.title"><i data-lucide="sparkles"></i> Your AI Prompt</h2>
+          </div>
+          <div class="result-section__prompt" id="result-prompt"></div>
+          <div class="result-section__actions">
+            <button class="btn-action btn-action--copy" id="copy-btn">
+              <i data-lucide="copy"></i>
+              <span data-i18n="result.copy">Copy to Clipboard</span>
+            </button>
+            <button class="btn-action btn-action--download" id="download-btn">
+              <i data-lucide="download"></i>
+              <span data-i18n="result.download">Download as Text</span>
+            </button>
+            <button class="btn-action btn-action--new" id="new-btn">
+              <i data-lucide="refresh-cw"></i>
+              <span data-i18n="result.new">Generate Another</span>
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /.app-card -->
+
+      <!-- Bottom Banner Ad -->
+      <div class="ad-banner" id="bottom-ad">
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-3618365568004987"
+             data-ad-slot="4314248288"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+      </div>
+
+    </section><!-- /page-home -->
+
+    <!-- ======== DYNAMIC PAGES CONTAINER ======== -->
+    <section class="page page--dynamic" id="page-dynamic" style="display:none;">
+      <div class="dynamic-content" id="dynamic-content">
+        <!-- Pages loaded here dynamically -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================ -->
+  <!-- FOOTER                                       -->
+  <!-- ============================================ -->
+  <footer class="footer" id="footer">
+    <div class="footer__container">
+      <div class="footer__top">
+        <!-- Logo & Description -->
+        <div class="footer__brand">
+          <a href="#home" class="footer__logo">
+            <div class="footer__logo-icon"><i data-lucide="sparkles"></i></div>
+            <span>Prompt<span class="text-gradient">AI</span></span>
+          </a>
+          <p class="footer__desc" data-i18n="footer.desc">Transform your images and videos into professional AI prompts.</p>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="footer__links">
+          <h4 data-i18n="footer.links">Quick Links</h4>
+          <a href="#home" data-page="home" data-i18n="nav.home">Home</a>
+          <a href="#howto" data-page="howto" data-i18n="nav.howto">How to Use</a>
+          <a href="#faq" data-page="faq" data-i18n="nav.faq">FAQ</a>
+          <a href="#about" data-page="about" data-i18n="nav.about">About</a>
+        </div>
+
+        <!-- Legal -->
+        <div class="footer__links">
+          <h4 data-i18n="footer.legal">Legal</h4>
+          <a href="#privacy" data-page="privacy" data-i18n="nav.privacy">Privacy Policy</a>
+          <a href="#terms" data-page="terms" data-i18n="nav.terms">Terms of Service</a>
+          <a href="#contact" data-page="contact" data-i18n="nav.contact">Contact</a>
+        </div>
+
+        <!-- Parent Site -->
+        <div class="footer__links">
+          <h4 data-i18n="footer.parent">Our Network</h4>
+          <a href="https://wdbloog.com" target="_blank" rel="noopener noreferrer" class="footer__parent-link">
+            <i data-lucide="external-link"></i> WD Bloog
+          </a>
+        </div>
+      </div>
+
+      <div class="footer__bottom">
+        <p data-i18n="footer.copyright">© 2026 PromptAI by WD Bloog. All rights reserved.</p>
+        <p class="footer__poweredby">
+          <span data-i18n="footer.poweredby">A product by</span>
+          <a href="https://wdbloog.com" target="_blank" rel="noopener noreferrer">WD Bloog</a>
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================================ -->
+  <!-- TOAST NOTIFICATION                           -->
+  <!-- ============================================ -->
+  <div class="toast" id="toast" aria-live="polite">
+    <i data-lucide="check-circle"></i>
+    <span id="toast-message"></span>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SCRIPTS                                      -->
+  <!-- ============================================ -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
